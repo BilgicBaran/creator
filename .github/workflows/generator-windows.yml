@@ -828,20 +828,15 @@ jobs:
           mv ./SignOutput/rustdesk.msi "./SignOutput/${{ inputs.filename }}.msi" || echo "rustdesk"
   
 
-      - name: send file to rdgen server
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
-        shell: bash
-        run: |
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.msi" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client || true
-
-      - name: send file to api server
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' }}
-        shell: bash
-        run: |
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" ${{ inputs.apiServer }}/api/save_custom_client
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.msi" ${{ inputs.apiServer }}/api/save_custom_client || true
-
+      - name: Upload signed Windows installers as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers-${{ inputs.filename }}-${{ inputs.uuid }}
+          path: |
+            SignOutput/${{ inputs.filename }}.exe
+            SignOutput/${{ inputs.filename }}.msi
+          if-no-files-found: error
+          
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
         with:
