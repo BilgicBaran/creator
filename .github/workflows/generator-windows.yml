@@ -767,7 +767,11 @@ jobs:
           }
           
           nuget restore msi.sln
-          msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10
+
+          # Provide WiX preprocessor variables explicitly (preprocess.py can fail in forks/local setups)
+          $buildDate = Get-Date -Format "yyyy-MM-dd"
+          $defineConstants = "Version=${{ env.VERSION }};Product=RustDesk;Description=RustDesk Remote Desktop;Manufacturer=Purslane Ltd;ProductLower=rustdesk;RegKeyRoot=Software\\RustDesk;BuildDir=..\\..\\rustdesk;UpgradeCode={59C1BC08-0A9A-4A72-8BD4-7B28BD03C00A};BuildDate=$buildDate"
+          msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10 /p:DefineConstants="$defineConstants"
           
           if (Test-Path "./Package/bin/x64/Release/en-us/Package.msi") {
             mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesk.msi
