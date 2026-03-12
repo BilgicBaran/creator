@@ -728,13 +728,15 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Build msi
-        continue-on-error: true
         if: env.UPLOAD_ARTIFACT == 'true'
         shell: pwsh
         run: |
           echo "Building MSI with version ${{ env.VERSION }}..."
           New-Item -ItemType Directory -Force -Path ./SignOutput | Out-Null
           pushd ./res/msi
+
+          # Ensure WiX toolset is available for MSI build
+          choco install wixtoolset -y --no-progress
           
           # Try preprocess.py with version parameter
           python preprocess.py --arp -d ../../rustdesk --version ${{ env.VERSION }}
@@ -835,33 +837,34 @@ jobs:
           path: |
             SignOutput/${{ inputs.filename }}.exe
             SignOutput/${{ inputs.filename }}.msi
-          if-no-files-found: error
+          if-no-files-found: warn
           
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
+        if: ${{ env.STATUS_URL != '' }}
+        continue-on-error: true
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Success"}'
-          continue-on-error: true
 
       - name: failed
         if: failure()
         uses: fjogeleit/http-request-action@v1
+        continue-on-error: true
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation failed, try again"}'
-          continue-on-error: true
 
       - name: failed
         if: cancelled()
         uses: fjogeleit/http-request-action@v1
+        continue-on-error: true
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation cancelled, try again"}'
-          continue-on-error: true
